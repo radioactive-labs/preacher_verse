@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+
+# Environment variables
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Cache (always generated at runtime - never commit)
+data/cache.sqlite
+data/cache.sqlite-*
+*.sqlite-shm
+*.sqlite-wal
+
+# ChromaDB (embeddings - can be regenerated from verses.db, exclude to keep repo size down)
+data/chromadb/
+
+# Note: data/verses.db is INCLUDED in git because it contains:
+# - All Bible verses (31k+ verses from KJV)
+# - Enriched text from LLM (expensive to regenerate: ~1-2 hours with Qwen 2.5)
+# This allows users to clone and use immediately without running populate script
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# React/Frontend
+frontend/build/
+frontend/dist/
+.DS_Store
+
+# Docker
+*.pid

@@ -1,0 +1,11 @@
+{
+  "signature": "contains_relevant_verses",
+  "timestamp": "20251006_113348",
+  "original_instruction": "Determine if sermon context contains biblical content worthy of verse display.\n\nThis is a FAST first-pass filter to avoid expensive searches on unsuitable content.\n\nSKIP (contains_verses=False) when:\n- Administrative announcements (schedules, logistics, offering instructions)\n- Vague/ambiguous language lacking concrete theological content\n- Transitional filler (\"Let me think...\", \"Where was I?\")\n- Repetitive content (same verse already queued or recently displayed)\n\nRETRIEVE (contains_verses=True) when:\n- Direct verse citations (e.g., \"As Matthew 6:27 says...\")\n- Biblical narratives or character stories\n- Theological concepts that map to specific scripture\n- Teaching about biblical principles\n\nConsider timing context:\n- Topics just introduced (recent timestamp) = higher confidence\n- Same topic as recent verses = lower confidence (avoid repetition)\n- Verses already in queue should not be detected again",
+  "best_candidate": {
+    "self": "Determine if sermon context contains biblical content worthy of verse display.\n\nThis is a FAST first-pass filter to avoid expensive searches on unsuitable content.\n\nSKIP (contains_verses=False) when:\n- Administrative announcements (schedules, logistics, offering instructions)\n- Vague/ambiguous language lacking concrete theological content\n- Transitional filler (\"Let me think...\", \"Where was I?\")\n- Repetitive content (same verse already queued or recently displayed)\n\nRETRIEVE (contains_verses=True) when:\n- Direct verse citations (e.g., \"As Matthew 6:27 says...\")\n- Biblical narratives or character stories\n- Theological concepts that map to specific scripture\n- Teaching about biblical principles\n\nConsider timing context:\n- Topics just introduced (recent timestamp) = higher confidence\n- Same topic as recent verses = lower confidence (avoid repetition)\n- Verses already in queue should not be detected again"
+  },
+  "best_candidate_idx": 0,
+  "total_metric_calls": 50,
+  "num_candidates": 1
+}

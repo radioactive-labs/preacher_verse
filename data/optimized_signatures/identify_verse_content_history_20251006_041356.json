@@ -1,0 +1,11 @@
+{
+  "signature": "identify_verse_content",
+  "timestamp": "20251006_041356",
+  "original_instruction": "",
+  "best_candidate": {
+    "self": "Identify what biblical content, entities, or verses are being referenced in the sermon.\n\nThis signature focuses on WHAT is being discussed rather than extracting abstract themes:\n- Direct verse quotes/mentions (e.g., \"As Matthew 6:27 says...\")\n- Biblical narratives (e.g., \"When Israel left Egypt...\")\n- Character stories (e.g., \"David facing Goliath...\")\n- Theological concepts that map to specific verses\n\nThe goal is to identify concrete biblical references that can be searched directly."
+  },
+  "best_candidate_idx": 0,
+  "total_metric_calls": 52,
+  "num_candidates": 1
+}

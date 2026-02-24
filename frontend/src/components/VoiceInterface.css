@@ -1,0 +1,64 @@
+/* Override Pipecat Voice UI Kit styles */
+
+/* Hide unnecessary elements */
+[data-component="console-template"] {
+  height: 100%;
+  background: transparent !important;
+}
+
+/* Clean up the voice interface container */
+.voice-interface-wrapper {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+}
+
+/* Simplify controls */
+[class*="controls"] {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* Clean button styles */
+button {
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+}
+
+button:hover {
+  transform: translateY(-1px) !important;
+}
+
+/* Microphone button */
+[aria-label*="microphone"],
+[aria-label*="Microphone"] {
+  background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(167, 139, 250, 0.3) !important;
+}
+
+[aria-label*="microphone"]:hover,
+[aria-label*="Microphone"]:hover {
+  box-shadow: 0 6px 16px rgba(167, 139, 250, 0.4) !important;
+}
+
+/* Status indicators */
+[class*="status"] {
+  font-size: 13px !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Hide metrics and conversation panels by default */
+[class*="metrics"],
+[class*="conversation"] {
+  display: none !important;
+}
+
+/* Clean audio visualizer */
+[class*="visualizer"] {
+  background: transparent !important;
+  border: none !important;
+}

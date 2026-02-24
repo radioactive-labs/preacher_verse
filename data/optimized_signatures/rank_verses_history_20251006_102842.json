@@ -1,0 +1,11 @@
+{
+  "signature": "rank_verses",
+  "timestamp": "20251006_102842",
+  "original_instruction": "Select the scripture verse that most powerfully reinforces the sermon's theological message.\n\nPrioritize verses that:\n- Use language/imagery directly echoing the sermon's specific words and metaphors\n- Address the exact theological question or truth being taught, not just the general topic\n- Provide authoritative scriptural grounding (Jesus' words, clear doctrinal statements)\n- Are concise and memorable enough for live display during sermon\n\nAvoid verses that:\n- Only tangentially relate to the topic without addressing the specific point\n- Are too generic or could apply to many different themes\n- Require extensive context to understand (prefer self-contained statements)",
+  "best_candidate": {
+    "predict": "Select the scripture verse that most powerfully reinforces the sermon's theological message.\n\nPrioritize verses that:\n- Use language/imagery directly echoing the sermon's specific words and metaphors\n- Address the exact theological question or truth being taught, not just the general topic\n- Provide authoritative scriptural grounding (Jesus' words, clear doctrinal statements)\n- Are concise and memorable enough for live display during sermon\n\nAvoid verses that:\n- Only tangentially relate to the topic without addressing the specific point\n- Are too generic or could apply to many different themes\n- Require extensive context to understand (prefer self-contained statements)"
+  },
+  "best_candidate_idx": 0,
+  "total_metric_calls": 55,
+  "num_candidates": 5
+}

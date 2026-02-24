@@ -1,0 +1,35 @@
+audio:
+  sample_rate: 16000
+  channels: 1
+  vad_enabled: true
+
+deepgram:
+  model: nova-2
+  language: en-US
+  punctuate: true
+  interim_results: false
+
+transcript:
+  context_window_seconds: 60
+  active_window_seconds: 10
+  cleanup_interval_seconds: 5
+
+theme_detection:
+  confidence_threshold: 70
+  min_words: 15
+
+verse_retrieval:
+  top_k_candidates: 5
+  min_relevance_score: 75
+
+cooldown:
+  seconds: 60
+  recent_verses_limit: 10
+
+websocket:
+  heartbeat_interval: 30
+  max_connections: 100
+
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
