@@ -14,7 +14,6 @@ Pipeline:
 4. RankVerses: Select best from candidates (with hallucination protection)
 """
 import dspy
-import sqlite3
 from pathlib import Path
 from typing import List, Dict, Optional
 from sentence_transformers import SentenceTransformer
@@ -476,3 +475,58 @@ class FetchRelevantVerse(dspy.Module):
         """Generate embedding vector for text."""
         embedding = self.embedding_model.encode(text, convert_to_numpy=True)
         return embedding.tolist()
+
+    def upsert_verses_batch(
+        self,
+        verses: List[tuple],
+        enrichments: List[str] = None
+    ):
+        """Upsert a batch of verses to ChromaDB.
+
+        Args:
+            verses: List of tuples (reference, text, tags)
+            enrichments: Optional list of enrichment strings (same length as verses)
+        """
+        if not verses:
+            return
+
+        ids = []
+        documents = []
+        metadatas = []
+
+        for i, (reference, text, tags) in enumerate(verses):
+            verse_id = reference.replace(' ', '_').replace(':', '_')
+            ids.append(verse_id)
+
+            # Use enrichment if provided, otherwise just the text
+            enrichment = enrichments[i] if enrichments and i < len(enrichments) else ''
+            doc_text = f"{text} {enrichment}".strip() if enrichment else text
+            documents.append(doc_text)
+
+            metadatas.append({
+                'reference': reference,
+                'reference_lower': reference.lower(),
+                'text': text,
+                'tags': ','.join(tags) if isinstance(tags, list) else tags,
+                'enrichment': enrichment
+            })
+
+        # Generate embeddings in batch
+        embeddings = self.embedding_model.encode(documents, convert_to_numpy=True).tolist()
+
+        # Upsert to ChromaDB
+        self.collection.upsert(
+            ids=ids,
+            embeddings=embeddings,
+            documents=documents,
+            metadatas=metadatas
+        )
+
+        logger.debug(f"Upserted {len(verses)} verses to ChromaDB")
+
+    def get_collection_stats(self) -> Dict:
+        """Get ChromaDB collection statistics."""
+        return {
+            'collection_name': self.collection.name,
+            'total_verses': self.collection.count()
+        }

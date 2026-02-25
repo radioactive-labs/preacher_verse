@@ -154,10 +154,9 @@ def main():
         help="Number of verses to commit per batch (for large imports)"
     )
     parser.add_argument(
-        "--enrich",
+        "--no-enrich",
         action="store_true",
-        default=True,
-        help="Enable contextual enrichment using Qwen 2.5 1.5B (slower but better search quality)"
+        help="Disable enrichment (faster, uses raw verse text only)"
     )
     parser.add_argument(
         "--force-enrich",
@@ -178,12 +177,14 @@ def main():
         session = get_session()
         fetch_verse = FetchRelevantVerse()
 
-        # Initialize enricher if requested
+        # Initialize enricher (enabled by default, use --no-enrich to disable)
         enricher = None
-        if args.enrich:
+        if not args.no_enrich:
             logger.info("Initializing verse enricher (Qwen 2.5 1.5B)...")
             enricher = VerseEnricher()
             logger.info("Enricher ready")
+        else:
+            logger.info("Skipping enrichment (--no-enrich flag set)")
 
         # Load verses from KJV Bible
         logger.info(f"Loading full KJV Bible from {args.bible_dir}...")

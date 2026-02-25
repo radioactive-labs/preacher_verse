@@ -1,13 +1,13 @@
 # Preacher Verse
 
-Real-time sermon verse retrieval system. Listens to live preaching via WebRTC, detects biblical themes using AI, and displays relevant Bible verses to the congregation.
+Real-time sermon verse retrieval system. Listens to live preaching, detects biblical themes using AI, and displays relevant Bible verses to the congregation.
 
 ## How It Works
 
 ```
-Daily.co (WebRTC Audio)
+Browser Microphone (Web Speech API)
          ↓
-   Deepgram STT (nova-2)
+   HTTP API (transcript)
          ↓
    TranscriptBuffer (60s context)
          ↓
@@ -40,14 +40,11 @@ Daily.co (WebRTC Audio)
 
 | Component | Technology |
 |-----------|------------|
-| Audio | Daily.co WebRTC |
-| Speech-to-Text | Deepgram nova-2 |
+| Speech-to-Text | Browser Web Speech API |
 | LLM | Gemini 2.0 Flash via DSPy |
 | Embeddings | SentenceTransformer `all-mpnet-base-v2` |
 | Vector Search | ChromaDB (local) |
-| Direct Lookup | SQLite |
-| Pipeline | Pipecat |
-| Backend | Python AsyncIO |
+| Backend | Python AsyncIO + aiohttp |
 | Frontend | React |
 | Real-time | WebSocket |
 
@@ -58,31 +55,50 @@ Daily.co (WebRTC Audio)
 - Python 3.12+
 - Node.js 18+
 - API Keys:
-  - [Deepgram](https://deepgram.com) - Speech-to-text
+  - [Deepgram](https://deepgram.com) - Speech-to-text (optional, for direct audio)
   - [Google AI Studio](https://aistudio.google.com) - Gemini API
-  - [Daily.co](https://daily.co) - WebRTC rooms
 
-### Setup
+### One-Command Setup
 
 ```bash
-# Install Python dependencies
-pip install -r requirements.txt
+./scripts/setup.sh
+```
 
-# Install frontend dependencies
+This will:
+1. Create virtual environment
+2. Install Python and Node dependencies
+3. Check for `.env` and prompt for API keys
+4. Populate Bible verses with enrichment (~30 min first run)
+5. Test all connections
+
+### Manual Setup
+
+```bash
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
 cd frontend && npm install && cd ..
 
 # Configure environment
 cp .env.example .env
 # Edit .env with your API keys
+
+# Populate Bible verses
+python scripts/populate_verses.py
+
+# Test connections
+python scripts/test_connection.py
 ```
 
 ### Environment Variables
 
 ```bash
 # Required
-DEEPGRAM_API_KEY=your_key
-GEMINI_API_KEY=your_key
-DAILY_API_KEY=your_key
+DEEPGRAM_API_KEY=your_key    # For direct audio transcription
+GEMINI_API_KEY=your_key      # For LLM processing
 
 # Optional (defaults shown)
 COOLDOWN_SECONDS=30              # Min time between displayed verses
@@ -91,40 +107,39 @@ ACTIVE_WINDOW_SECONDS=10         # Detection interval
 CONTEXT_WINDOW_SECONDS=60        # Transcript context window
 ```
 
-### Populate Bible Data
-
-The system needs Bible verses in ChromaDB. First run:
-
-```bash
-python scripts/populate_verses.py
-```
-
-This loads the full KJV Bible (31,102 verses) with embeddings. Takes ~30 minutes on first run.
-
 ### Run
 
-**Terminal 1 - Backend:**
+**Quick start (both backend and frontend):**
 ```bash
+./scripts/run.sh
+```
+
+**Or manually:**
+
+Terminal 1 - Backend:
+```bash
+source venv/bin/activate
 python main.py
 ```
 
-This starts:
-- WebSocket server on `ws://localhost:8765`
-- Daily bot endpoint on `http://localhost:7860`
-
-**Terminal 2 - Frontend:**
+Terminal 2 - Frontend:
 ```bash
 cd frontend
 npm start
 ```
 
-Opens `http://localhost:3000`
+### Endpoints
+
+- **Frontend:** http://localhost:3000
+- **HTTP API:** http://localhost:8080
+- **WebSocket:** ws://localhost:8765
 
 ### Connect Audio
 
-1. Create a Daily.co room at https://dashboard.daily.co
-2. Join the room from browser/device with microphone
-3. The bot auto-joins and starts processing audio
+1. Open http://localhost:3000
+2. Click "Connect Microphone" in the Audio Control panel
+3. Allow microphone access when prompted
+4. Speak - verses will appear automatically
 
 ## Configuration
 
@@ -161,6 +176,8 @@ preacher_verse/
 │   │   └── verse_display_event.py
 │   ├── processors/
 │   │   └── sermon_processor.py   # Main orchestration
+│   ├── api/
+│   │   └── http_server.py        # HTTP API for transcripts
 │   ├── services/
 │   │   ├── websocket_server.py
 │   │   └── verse_enricher.py
@@ -177,9 +194,10 @@ preacher_verse/
 │           └── AudioConfigPanel.js
 ├── data/
 │   ├── chromadb/          # Vector embeddings (31k verses)
-│   ├── bible-kjv/         # Source JSON files
-│   └── optimized_signatures/  # GEPA-optimized prompts
+│   └── bible-kjv/         # Source JSON files
 ├── scripts/
+│   ├── setup.sh           # Full setup
+│   ├── run.sh             # Start system
 │   ├── populate_verses.py # Load Bible into ChromaDB
 │   └── test_connection.py # Test all services
 ├── main.py                # Entry point
@@ -189,7 +207,7 @@ preacher_verse/
 
 ## How Detection Works
 
-1. **Transcript arrives** from Deepgram (streaming STT)
+1. **Transcript arrives** from browser (Web Speech API)
 2. **Buffer accumulates** 60 seconds of context with timestamps
 3. **Every 10 seconds**, detection runs:
    - `ContainsRelevantVerses`: Should we look for a verse? (fast filter)
@@ -204,24 +222,29 @@ preacher_verse/
 
 ## Cost Estimate
 
-- **Deepgram**: ~$0.26/hour of audio
 - **Gemini**: Free tier (1,500 requests/day) or ~$0.075/1M tokens
-- **Daily.co**: Free tier includes 10,000 participant-minutes/month
 - **ChromaDB**: Free (local)
+- **Browser Speech API**: Free
 
-**Monthly estimate**: ~$5-10 for weekly services
+**Monthly estimate**: ~$0-5 for typical usage
 
 ## Scripts
 
 ```bash
-# Populate Bible verses (first time setup)
-python scripts/populate_verses.py
+# Full setup (venv, deps, populate, test)
+./scripts/setup.sh
 
-# Test all service connections
+# Start both backend and frontend
+./scripts/run.sh
+
+# Populate verses (enrichment enabled by default)
+./scripts/populate.sh
+
+# Populate without enrichment (faster)
+./scripts/populate.sh --no-enrich
+
+# Test connections
 python scripts/test_connection.py
-
-# Run with enrichment (slower, better search quality)
-python scripts/populate_verses.py --enrich
 ```
 
 ## Troubleshooting
@@ -231,10 +254,10 @@ python scripts/populate_verses.py --enrich
 - Check `COOLDOWN_SECONDS` - verses won't show faster than this interval
 - Verify ChromaDB has data: `python scripts/test_connection.py`
 
-**Deepgram not transcribing:**
-- Check `DEEPGRAM_API_KEY` is valid
-- Ensure Daily room has audio input enabled
-- Check logs for WebSocket connection errors
+**Microphone not working:**
+- Ensure you're using Chrome or Edge (Web Speech API support)
+- Check browser permissions for microphone access
+- Try refreshing the page
 
 **High latency:**
 - Detection targets <2s inference time

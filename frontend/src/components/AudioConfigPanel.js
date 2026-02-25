@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import DailyIframe from '@daily-co/daily-js';
 
 function AudioConfigPanel({ queuedVerses = [] }) {
   const [isConnected, setIsConnected] = useState(false);
@@ -7,124 +6,161 @@ function AudioConfigPanel({ queuedVerses = [] }) {
   const [error, setError] = useState(null);
   const [audioLevel, setAudioLevel] = useState(0);
 
-  const dailyRef = useRef(null);
+  const recognitionRef = useRef(null);
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
   const animationFrameRef = useRef(null);
+  const mediaStreamRef = useRef(null);
 
   const startConnection = async () => {
     try {
       setError(null);
       setIsConnecting(true);
 
-      // Clean up any existing Daily instance first
-      if (dailyRef.current) {
-        console.log('[Daily] Cleaning up existing instance...');
-        try {
-          await dailyRef.current.destroy();
-        } catch (e) {
-          console.warn('[Daily] Error destroying existing instance:', e);
-        }
-        dailyRef.current = null;
+      // Check for Web Speech API support
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        throw new Error('Speech recognition not supported. Use Chrome or Edge.');
       }
 
-      console.log('[Daily] Creating Daily call object...');
+      // Request microphone access for audio visualization
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
 
-      // Create Daily call object
-      const daily = DailyIframe.createCallObject({
-        audioSource: true,
-        videoSource: false,
-      });
+      // Set up audio visualization
+      setupAudioVisualization(stream);
 
-      dailyRef.current = daily;
+      // Set up speech recognition
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-US';
 
-      // Set up event listeners
-      daily.on('joined-meeting', () => {
-        console.log('[Daily] Joined meeting');
+      recognition.onstart = () => {
+        console.log('[Speech] Recognition started');
         setIsConnecting(false);
         setIsConnected(true);
-        setupAudioVisualization();
-      });
+      };
 
-      daily.on('left-meeting', () => {
-        console.log('[Daily] Left meeting');
-        setIsConnected(false);
-      });
+      recognition.onresult = async (event) => {
+        let finalTranscript = '';
 
-      daily.on('error', (error) => {
-        console.error('[Daily] Error:', error);
-        setError(error.errorMsg || 'Daily connection failed');
-        setIsConnecting(false);
-      });
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript;
+          }
+        }
 
-      // Request room from backend
-      console.log('[Daily] Requesting room from backend...');
-      const response = await fetch('http://localhost:7860/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
+        // Send final transcripts to backend
+        if (finalTranscript.trim()) {
+          await sendTranscript(finalTranscript.trim());
+        }
+      };
 
-      if (!response.ok) {
-        throw new Error(`Failed to create room: ${response.status}`);
-      }
+      recognition.onerror = (event) => {
+        console.error('[Speech] Error:', event.error);
+        if (event.error !== 'no-speech' && event.error !== 'aborted') {
+          setError(`Speech error: ${event.error}`);
+        }
+      };
 
-      const data = await response.json();
-      const roomUrl = data.dailyRoom;
-      const token = data.dailyToken;
+      recognition.onend = () => {
+        console.log('[Speech] Recognition ended');
+        // Auto-restart if still connected
+        if (recognitionRef.current && isConnected) {
+          setTimeout(() => {
+            try {
+              recognitionRef.current?.start();
+            } catch (e) {
+              console.error('[Speech] Failed to restart:', e);
+            }
+          }, 100);
+        }
+      };
 
-      console.log('[Daily] Room URL:', roomUrl);
-      console.log('[Daily] Token received');
-
-      // Join the Daily room
-      await daily.join({
-        url: roomUrl,
-        token: token
-      });
-
-      console.log('[Daily] Join request sent');
+      recognitionRef.current = recognition;
+      recognition.start();
 
     } catch (err) {
-      console.error('[Daily] Failed to start:', err);
+      console.error('[Audio] Failed to start:', err);
       setError(err.message);
       setIsConnecting(false);
     }
   };
 
-  const setupAudioVisualization = async () => {
+  const setupAudioVisualization = (stream) => {
     try {
-      // Use simulated visualization (safer for now)
+      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      analyserRef.current = audioContextRef.current.createAnalyser();
+      analyserRef.current.fftSize = 256;
+
+      const source = audioContextRef.current.createMediaStreamSource(stream);
+      source.connect(analyserRef.current);
+
+      console.log('[Visualization] Started with real audio');
       updateAudioLevel();
-      console.log('[Visualization] Started (simulated)');
     } catch (err) {
-      console.error('[Visualization] Failed to setup:', err);
-      updateAudioLevel();
+      console.error('[Visualization] Failed:', err);
     }
   };
 
   const updateAudioLevel = () => {
-    // Simulated audio levels
-    const simulatedLevel = 30 + Math.random() * 40;
-    setAudioLevel(simulatedLevel);
+    if (!analyserRef.current) {
+      return;
+    }
 
+    const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+    analyserRef.current.getByteFrequencyData(dataArray);
+
+    // Calculate average level
+    const average = dataArray.reduce((a, b) => a + b, 0) / dataArray.length;
+    const level = Math.min(100, (average / 128) * 100);
+
+    setAudioLevel(level);
     animationFrameRef.current = requestAnimationFrame(updateAudioLevel);
   };
 
-  const stopConnection = async () => {
-    console.log('[Daily] Stopping connection...');
+  const sendTranscript = async (text) => {
+    try {
+      const response = await fetch('http://localhost:8080/api/transcript', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, room: 'default' })
+      });
+
+      if (!response.ok) {
+        console.error('[Transcript] Failed to send:', response.statusText);
+      }
+    } catch (err) {
+      console.error('[Transcript] Error:', err);
+    }
+  };
+
+  const stopConnection = () => {
+    console.log('[Audio] Stopping...');
+
+    // Stop recognition
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
 
     // Stop visualization
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
     }
+
+    // Close audio context
     if (audioContextRef.current) {
       audioContextRef.current.close();
+      audioContextRef.current = null;
     }
 
-    // Leave Daily call
-    if (dailyRef.current) {
-      await dailyRef.current.leave();
-      await dailyRef.current.destroy();
-      dailyRef.current = null;
+    // Stop media stream
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach(track => track.stop());
+      mediaStreamRef.current = null;
     }
 
     setAudioLevel(0);
@@ -135,15 +171,7 @@ function AudioConfigPanel({ queuedVerses = [] }) {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (dailyRef.current) {
-        dailyRef.current.destroy();
-      }
-      if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
+      stopConnection();
     };
   }, []);
 
@@ -231,7 +259,7 @@ function AudioConfigPanel({ queuedVerses = [] }) {
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
-              {queuedVerses.map((item, index) => (
+              {queuedVerses.map((item) => (
                 <div
                   key={item.reference}
                   className="px-6 py-3 hover:bg-gray-50 transition-colors"

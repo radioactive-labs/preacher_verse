@@ -132,10 +132,12 @@ class SermonProcessor:
 
         timestamp = timestamp or datetime.now()
 
-        # Set sermon start time on first segment
+        # Set sermon start time on first segment and start display worker
         if self.sermon_start_time is None:
             self.sermon_start_time = timestamp
             logger.info(f"Sermon started at {self.sermon_start_time}")
+            # Auto-start display worker for browser-based input
+            self.start_display_worker()
 
         # ALWAYS broadcast transcript to UI
         await self.ws_server.broadcast_transcript(text, timestamp.isoformat())

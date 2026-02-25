@@ -5,8 +5,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 class Config:
-    """Application configuration loaded from environment and YAML."""
+    """Application configuration."""
 
     def __init__(self):
         self._load_yaml_config()
@@ -18,24 +19,17 @@ class Config:
             self.yaml_config = yaml.safe_load(f)
 
     def _load_env_config(self):
-        # API Keys
+        # API Keys (required)
         self.DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
         self.GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-        self.DAILY_API_KEY = os.getenv("DAILY_API_KEY")
 
-        # Redis
-        self.REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
-        self.REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
-        self.REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")
-
-        # Database
-        self.DATABASE_URL = os.getenv("DATABASE_URL")
-
-        # WebSocket
+        # Server Configuration
         self.WS_HOST = os.getenv("WS_HOST", "0.0.0.0")
         self.WS_PORT = int(os.getenv("WS_PORT", "8765"))
+        self.HTTP_HOST = os.getenv("HTTP_HOST", "0.0.0.0")
+        self.HTTP_PORT = int(os.getenv("HTTP_PORT", "8080"))
 
-        # Application
+        # Application Settings
         self.COOLDOWN_SECONDS = int(os.getenv("COOLDOWN_SECONDS", "30"))
         self.RANKING_CONFIDENCE_THRESHOLD = int(os.getenv("RANKING_CONFIDENCE_THRESHOLD", "75"))
         self.CONTEXT_WINDOW_SECONDS = int(os.getenv("CONTEXT_WINDOW_SECONDS", "60"))
@@ -51,5 +45,6 @@ class Config:
             else:
                 return default
         return value if value is not None else default
+
 
 config = Config()

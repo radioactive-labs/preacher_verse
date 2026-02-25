@@ -6,7 +6,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from backend.services.redis_service import RedisService
 from backend.dspy import FetchRelevantVerse
 from backend.utils.logger import setup_logger
 from backend.utils.config import config
@@ -14,32 +13,42 @@ import google.generativeai as genai
 
 logger = setup_logger(__name__)
 
-def test_redis():
-    """Test Redis connection."""
-    logger.info("Testing Redis connection...")
+
+def test_deepgram():
+    """Test Deepgram API key is set."""
+    logger.info("Testing Deepgram configuration...")
     try:
-        redis_service = RedisService()
-        if redis_service.ping():
-            logger.info("✓ Redis connected successfully")
-            return True
-        else:
-            logger.error("✗ Redis ping failed")
+        if not config.DEEPGRAM_API_KEY:
+            logger.error("✗ DEEPGRAM_API_KEY not set")
             return False
+
+        # Just verify the key format (starts with expected prefix)
+        if len(config.DEEPGRAM_API_KEY) < 20:
+            logger.error("✗ DEEPGRAM_API_KEY appears invalid (too short)")
+            return False
+
+        logger.info("✓ Deepgram API key configured")
+        return True
     except Exception as e:
-        logger.error(f"✗ Redis connection failed: {e}")
+        logger.error(f"✗ Deepgram check failed: {e}")
         return False
+
 
 def test_gemini():
     """Test Gemini API connection."""
     logger.info("Testing Gemini API connection...")
     try:
+        if not config.GEMINI_API_KEY:
+            logger.error("✗ GEMINI_API_KEY not set")
+            return False
+
         genai.configure(api_key=config.GEMINI_API_KEY)
-        model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        model = genai.GenerativeModel('gemini-2.0-flash')
         response = model.generate_content("Say 'connected' if you can read this.")
 
         if response.text:
             logger.info("✓ Gemini API connected successfully")
-            logger.info(f"  Response: {response.text.strip()}")
+            logger.info(f"  Response: {response.text.strip()[:50]}")
             return True
         else:
             logger.error("✗ Gemini API response empty")
@@ -47,6 +56,7 @@ def test_gemini():
     except Exception as e:
         logger.error(f"✗ Gemini API connection failed: {e}")
         return False
+
 
 def test_chromadb():
     """Test ChromaDB connection."""
@@ -69,6 +79,7 @@ def test_chromadb():
         logger.error(f"✗ ChromaDB connection failed: {e}")
         return False
 
+
 def main():
     """Run all connection tests."""
     logger.info("=" * 60)
@@ -76,7 +87,7 @@ def main():
     logger.info("=" * 60)
 
     results = {
-        'Redis': test_redis(),
+        'Deepgram': test_deepgram(),
         'Gemini': test_gemini(),
         'ChromaDB': test_chromadb()
     }
@@ -100,6 +111,7 @@ def main():
     else:
         logger.error("Some tests failed. Please check configuration.")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()
